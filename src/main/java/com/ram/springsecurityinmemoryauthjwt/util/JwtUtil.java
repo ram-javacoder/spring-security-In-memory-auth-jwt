@@ -14,38 +14,45 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
 
 	@Value("${app.jwt.secret}")
-    private String secret;
+	private String secret;
 
-    @Value("${app.jwt.expiration}")
-    private long expiration;
+	@Value("${app.jwt.expiration}")
+	private long accessExpiration;
 
-    public String generateToken(String username, List<String> roles) {
+	@Value("${app.jwt.refresh.expiration}")
+	private long refreshExpiration;
+
+	public String generateToken(String username, List<String> roles, long expiration) {
+		return Jwts.builder().setSubject(username).claim("roles", roles) // add roles inside JWT
+				.setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + expiration))
+				.signWith(Keys.hmacShaKeyFor(secret.getBytes())).compact();
+	}
+
+	public String generateAccessToken(String username, List<String> roles) {
+		return generateToken(username, roles, accessExpiration);
+	}
+
+	public String generateRefreshToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
-                .claim("roles", roles)  // add roles inside JWT
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(
+                        new Date(System.currentTimeMillis()
+                                + refreshExpiration))
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact();
     }
-    
-    public Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(secret.getBytes())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-    
-    
-    public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
-    }
-    
-    public List<String> extractRoles(String token) {
-        return extractAllClaims(token).get("roles", List.class);
-    }
-    
-    
-    
+	
+	public Claims extractAllClaims(String token) {
+		return Jwts.parserBuilder().setSigningKey(secret.getBytes()).build().parseClaimsJws(token).getBody();
+	}
+
+	public String extractUsername(String token) {
+		return extractAllClaims(token).getSubject();
+	}
+
+	public List<String> extractRoles(String token) {
+		return extractAllClaims(token).get("roles", List.class);
+	}
+
 }

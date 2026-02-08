@@ -58,7 +58,7 @@ public class SecurityConfig {
 
 		http.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/public", "/auth/login").permitAll()
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/login","/auth/refresh","/public").permitAll()
 						.requestMatchers("/admin/**").hasRole("ADMIN").requestMatchers("/welcome")
 						.hasAnyRole("USER", "ADMIN").anyRequest().authenticated())
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

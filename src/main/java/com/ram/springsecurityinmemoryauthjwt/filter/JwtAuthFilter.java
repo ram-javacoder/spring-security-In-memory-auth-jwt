@@ -1,13 +1,12 @@
 package com.ram.springsecurityinmemoryauthjwt.filter;
 
 import java.io.IOException;
+import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.ram.springsecurityinmemoryauthjwt.util.JwtUtil;
@@ -28,29 +27,44 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		this.jwtUtil = jwtUtil;
 	}
 
+	
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-			throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-		String header = request.getHeader("Authorization");
+        String header = request.getHeader("Authorization");
 
-		if (header != null && header.startsWith("Bearer ")) {
+        if (header != null && header.startsWith("Bearer ")) {
 
-			String token = header.substring(7);
-			String username = jwtUtil.extractUsername(token);
+            String token = header.substring(7);
 
-			if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String username = jwtUtil.extractUsername(token);
+            List<String> roles = jwtUtil.extractRoles(token);
 
-				UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            if (username != null &&
+                SecurityContextHolder.getContext().getAuthentication() == null) {
 
-				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-						null, userDetails.getAuthorities());
+                List<SimpleGrantedAuthority> authorities =
+                        roles.stream()
+                             .map(SimpleGrantedAuthority::new)
+                             .toList();
 
-				SecurityContextHolder.getContext().setAuthentication(authToken);
-			}
-		}
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                authorities
+                        );
 
-		filterChain.doFilter(request, response);
-	}
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+	
+	
 
 }
